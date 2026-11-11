@@ -1,0 +1,60 @@
+{
+    "name": "health",
+    "version": "0.1.0",
+    "kernel": "^1.19.0",
+    "solves": "health.probes",
+    "type": "module",
+
+    "requires": [],
+
+    "exposes": [
+        "Plugins\\Health\\API\\Contracts\\HealthCheckerContract"
+    ],
+
+    "routePrefix": "/health",
+
+    "routes": [
+        {
+            "method": "GET",
+            "path": "",
+            "handler": "Plugins\\Health\\Infrastructure\\Http\\Controllers\\HealthController@live",
+            "name": "health.live"
+        },
+        {
+            "method": "GET",
+            "path": "/ready",
+            "handler": "Plugins\\Health\\Infrastructure\\Http\\Controllers\\HealthController@ready",
+            "name": "health.ready"
+        },
+        {
+            "method": "GET",
+            "path": "/{probe:alpha}",
+            "handler": "Plugins\\Health\\Infrastructure\\Http\\Controllers\\HealthController@one",
+            "name": "health.probe"
+        }
+    ],
+
+    "emits": [],
+    "listens": [],
+    "files": [],
+
+    "documentation": "HTTP liveness and readiness probes for the dependencies of the running process. GET /health is liveness and touches nothing external; GET /health/ready checks every bound port and answers 503 when one is down; GET /health/{probe} reports one. Does NOT answer whether the machine can run the kernel — that is `hkm doctor`, which stays the single authority on environment problems.",
+
+    "//liveness": "Point a container's LIVENESS probe at /health and its READINESS probe at /health/ready. The distinction is load-bearing: a failed liveness probe RESTARTS the container while a failed readiness probe only removes it from the load balancer, so a liveness probe that touches the database makes an orchestrator kill every replica during a database blip — adding a restart storm to an outage that a restart cannot fix.",
+
+    "//static-beats-dynamic": "/ready is declared alongside /{probe:alpha} on purpose. The kernel resolves static routes before dynamic ones, so /health/ready reaches ready() and never the one-probe handler.",
+
+    "//no-filters": "This module declares no routeFilters. A health endpoint behind the application's own auth or throttle stages stops answering for exactly the reasons it exists to report. Detail is gated by HEALTH_TOKEN inside the controller instead, so the probe itself always answers.",
+
+    "config": [
+        { "key": "HEALTH_TOKEN", "type": "string", "required": false },
+        { "key": "HEALTH_CACHE_TTL", "type": "int", "required": false, "default": 0 },
+        { "key": "HEALTH_QUEUE_NAME", "type": "string", "required": false, "default": "default" },
+        { "key": "HEALTH_QUEUE_MAX_DEPTH", "type": "int", "required": false, "default": 0 },
+        { "key": "HEALTH_PROBE_DATABASE", "type": "bool", "required": false, "default": true },
+        { "key": "HEALTH_PROBE_CACHE", "type": "bool", "required": false, "default": true },
+        { "key": "HEALTH_PROBE_QUEUE", "type": "bool", "required": false, "default": true },
+        { "key": "HEALTH_PROBE_STORAGE", "type": "bool", "required": false, "default": true },
+        { "key": "HEALTH_DEGRADED_AFTER_MS", "type": "int", "required": false, "default": 0 }
+    ]
+}
